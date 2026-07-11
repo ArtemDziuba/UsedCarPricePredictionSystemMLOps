@@ -1,0 +1,7 @@
+services:
+  used_car_api:
+    build: .
+    container_name: car_pricing_baseline
+    ports:
+      - "8000:8000"
+    restart: unless-stopped

@@ -1,0 +1,9 @@
+pandas
+scikit-learn
+lightgbm
+xgboost
+joblib
+pyarrow
+numpy
+boto3
+s3fs

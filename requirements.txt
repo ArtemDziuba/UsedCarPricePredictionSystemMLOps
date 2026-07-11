@@ -1,0 +1,13 @@
+numpy
+pandas
+pyarrow
+scikit-learn
+lightgbm
+xgboost
+joblib
+pydantic
+fastapi
+uvicorn
+apache-airflow
+boto3
+s3fs
