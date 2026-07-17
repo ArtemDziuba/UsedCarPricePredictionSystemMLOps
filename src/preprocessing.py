@@ -161,7 +161,7 @@ def generate_preprocessing_artifacts(df: pd.DataFrame) -> dict:
 
 def preprocess_full_dataset(df: pd.DataFrame) -> pd.DataFrame:
     """Drops tracking flags so Tree models just get the raw values."""
-    cols_to_remove = ['sale_month_isMissing', 'sale_year_isMissing', 'condition_was_missing']
+    cols_to_remove = ['sale_month_isMissing', 'sale_year_isMissing']
     return df.drop(columns=cols_to_remove, errors="ignore")
 
 def preprocess_num_dataset(df: pd.DataFrame, artifacts: dict) -> pd.DataFrame:
@@ -269,6 +269,34 @@ def create_datasets(input_path: str, output_dir: str, artifacts_dir: str):
     num_path = os.path.join(output_dir, 'num_dataset.parquet')
     df_num.to_parquet(num_path, index=False)
     print(f"Saved {num_path} (Shape: {df_num.shape})")
+
+    print("\nConnecting to MinIO to upload datasets...")
+    
+    # 1. Grab the credentials Airflow already injected into the environment
+    minio_options = {
+        "key": os.environ.get("AWS_ACCESS_KEY_ID", "admin"),
+        "secret": os.environ.get("AWS_SECRET_ACCESS_KEY", "password123"),
+        "client_kwargs": {
+            "endpoint_url": os.environ.get("MLFLOW_S3_ENDPOINT_URL", "http://minio:9000")
+        }
+    }
+
+    # 2. Stream the files directly into the s3 bucket
+    s3_full_dataset_path = "s3://ml-data/processed/full_dataset.parquet"
+    print(f"Uploading full dataset to {s3_full_dataset_path}...")
+    df_full.to_parquet(s3_full_dataset_path, storage_options=minio_options)
+
+    s3_num_dataset_path = "s3://ml-data/processed/num_dataset.parquet"
+    print(f"Uploading numerical dataset to {s3_num_dataset_path}...")
+    df_num.to_parquet(s3_num_dataset_path, storage_options=minio_options)
+
+    print("Uploading preprocessing artifacts to models/preprocessing_artifacts.pkl...")
+    s3_client.upload_file(
+        Filename=artifacts_path,                 # The local file you just saved 
+        Bucket='models',                         # The destination bucket
+        Key='preprocessing_artifacts.pkl'        # The file name inside the bucket
+    )
+
 
     print("\nPipeline execution complete!")
 
