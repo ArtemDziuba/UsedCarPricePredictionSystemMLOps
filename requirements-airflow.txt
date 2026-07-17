@@ -7,3 +7,4 @@ pyarrow
 numpy
 boto3
 s3fs
+mlflow

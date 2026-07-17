@@ -36,7 +36,7 @@ with DAG(
     # Task 2: Run the Baseline Training Script
     train_baseline_task = BashOperator(
         task_id='run_baseline_training',
-        bash_command='cd /opt/airflow && python src/preprocessing.py'
+        bash_command='cd /opt/airflow && python src/train.py'
     )
 
     # Define the dependency: Preprocessing MUST finish successfully before Training starts

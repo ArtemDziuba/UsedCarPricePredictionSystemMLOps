@@ -11,3 +11,4 @@ uvicorn
 apache-airflow
 boto3
 s3fs
+mlflow
