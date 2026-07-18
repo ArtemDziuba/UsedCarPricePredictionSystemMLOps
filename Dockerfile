@@ -1,22 +1,21 @@
-# Use the EXACT same Python version you used for training
-FROM python:3.14-slim
+# Use the official Airflow image
+FROM apache/airflow:2.9.2
 
-# Set the working directory inside the container
-WORKDIR /app
+# Switch to root to install system dependencies if needed
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy the requirements file first to cache dependencies
-COPY requirements.txt .
+# Switch back to the airflow user to install Python packages
+USER airflow
 
-# Install the Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy the AIRFLOW-SPECIFIC requirements
+COPY requirements.txt /requirements.txt
 
-# Copy the necessary folders into the container
-COPY api/ ./api/
-COPY src/ ./src/
-COPY models/ ./models/
+# Install the ML packages into the Airflow environment
+RUN pip install --no-cache-dir -r /requirements.txt
 
-# Expose the port FastAPI runs on
-EXPOSE 8000
+ENV PYTHONPATH=/opt/airflow:/opt/airflow/src
 
-# Command to run the FastAPI server
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]

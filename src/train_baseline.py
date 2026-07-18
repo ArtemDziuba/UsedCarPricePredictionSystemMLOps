@@ -31,6 +31,9 @@ def train_baseline():
     # MLFLOW RUN
     with mlflow.start_run(run_name="Baseline_LR"):
         
+        pipeline_run_id = os.environ.get("PIPELINE_RUN_ID", "manual_local_run")
+        mlflow.set_tag("pipeline_run_id", pipeline_run_id)
+        
         # Log your model configuration
         mlflow.log_param("model_type", "LinearRegression")
         mlflow.log_param("target_transformation", "log1p")

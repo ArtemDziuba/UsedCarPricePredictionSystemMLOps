@@ -5,26 +5,60 @@ import os
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
-def load_dataset(file_path: str, target_col: str = 'sellingprice', test_size: float = 0.2, random_state: int = 42):
-    """
-    Loads a dataset (Parquet or CSV) and splits it 80/20 into train and test sets.
+# def load_dataset(file_path: str, target_col: str = 'sellingprice', test_size: float = 0.2, random_state: int = 42):
+#     """
+#     Loads a dataset (Parquet or CSV) and splits it 80/20 into train and test sets.
     
-    Args:
-        file_path (str): Path to the processed dataset.
-        target_col (str): The name of the target variable to predict.
-        test_size (float): The proportion of the dataset to include in the test split.
-        random_state (int): Seed for reproducible shuffles.
+#     Args:
+#         file_path (str): Path to the processed dataset.
+#         target_col (str): The name of the target variable to predict.
+#         test_size (float): The proportion of the dataset to include in the test split.
+#         random_state (int): Seed for reproducible shuffles.
         
-    Returns:
-        tuple: X_train, X_test, y_train, y_test
-    """
+#     Returns:
+#         tuple: X_train, X_test, y_train, y_test
+#     """
+#     print(f"Loading dataset from {file_path}...")
+    
+#     # Support both formats just in case you ever switch back
+#     if file_path.endswith('.parquet'):
+#         df = pd.read_parquet(file_path)
+#     else:
+#         df = pd.read_csv(file_path)
+        
+#     # Separate Features (X) and Target (y)
+#     X = df.drop(columns=[target_col])
+#     y = df[target_col]
+    
+#     # Perform the 80/20 split
+#     X_train, X_test, y_train, y_test = train_test_split(
+#         X, y, test_size=test_size, random_state=random_state
+#     )
+    
+#     print(f"Split complete: {len(X_train)} training rows, {len(X_test)} testing rows.")
+#     return X_train, X_test, y_train, y_test
+
+
+def load_dataset(file_path: str, target_col: str = 'sellingprice', test_size: float = 0.2, random_state: int = 42):
     print(f"Loading dataset from {file_path}...")
     
-    # Support both formats just in case you ever switch back
+    storage_options = None
+    
+    # 1. If the path is an S3 bucket, build the credentials dictionary
+    if file_path.startswith("s3://"):
+        storage_options = {
+            "key": os.environ.get("AWS_ACCESS_KEY_ID", "admin"),
+            "secret": os.environ.get("AWS_SECRET_ACCESS_KEY", "password123"),
+            "client_kwargs": {
+                "endpoint_url": os.environ.get("MLFLOW_S3_ENDPOINT_URL", "http://minio:9000")
+            }
+        }
+    
+    # 2. Read the data, ensuring storage_options is passed into Pandas
     if file_path.endswith('.parquet'):
-        df = pd.read_parquet(file_path)
+        df = pd.read_parquet(file_path, storage_options=storage_options)
     else:
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(file_path, storage_options=storage_options)
         
     # Separate Features (X) and Target (y)
     X = df.drop(columns=[target_col])
@@ -37,6 +71,7 @@ def load_dataset(file_path: str, target_col: str = 'sellingprice', test_size: fl
     
     print(f"Split complete: {len(X_train)} training rows, {len(X_test)} testing rows.")
     return X_train, X_test, y_train, y_test
+
 
 def save_model(model, filepath: str):
     """

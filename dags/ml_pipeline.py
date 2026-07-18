@@ -20,24 +20,40 @@ with DAG(
     catchup=False,
 ) as dag:
     
-    # NEW TASK: Upload to Object Storage
+    # Task 1: Upload to Object Storage
     upload_task = BashOperator(
         task_id='upload_to_storage',
         bash_command='cd /opt/airflow && python src/upload_to_storage.py'
     )
 
-    # Task 1: Run the Preprocessing Script
+    # Task 2: Run the Preprocessing Script
     preprocess_task = BashOperator(
         task_id='run_preprocessing',
         # Notice the absolute path matching our docker-compose volume mounts
         bash_command='cd /opt/airflow && python src/preprocessing.py' 
     )
 
-    # Task 2: Run the Baseline Training Script
+    # Task 3: Run the Baseline Training Script
     train_baseline_task = BashOperator(
         task_id='run_baseline_training',
-        bash_command='cd /opt/airflow && python src/train.py'
+        bash_command='cd /opt/airflow && export PIPELINE_RUN_ID={{ run_id }} && python src/train_baseline.py'
+    )
+    
+    # Task 4: Run the Challenger Training Script
+    train_challenger_task = BashOperator(
+        task_id='run_challenger_training',
+        bash_command='cd /opt/airflow && export PIPELINE_RUN_ID={{ run_id }} && python src/train_challenger.py'
     )
 
-    # Define the dependency: Preprocessing MUST finish successfully before Training starts
-    upload_task >> preprocess_task >> train_baseline_task
+    # Task 5: Run the Evaluation and Promotion Script
+    evaluate_task = BashOperator(
+        task_id='evaluate_and_promote',
+        bash_command='cd /opt/airflow && export PIPELINE_RUN_ID={{ run_id }} && python src/evaluate_and_promote.py'
+    )
+
+    # The Dependency Chain:
+    # 1. Upload task runs
+    # 2. Preprocess runs
+    # 3. Baseline and Challenger train at the SAME TIME
+    # 4. When BOTH finish, Evaluate runs and crowns the Champion
+    upload_task >> preprocess_task >> [train_baseline_task, train_challenger_task] >> evaluate_task

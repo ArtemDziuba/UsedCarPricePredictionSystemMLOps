@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import mlflow
 import mlflow.sklearn
-from preprocessing import preprocess_shared, preprocess_num_dataset
+from src.preprocessing import preprocess_shared, preprocess_num_dataset
 
 class CarPricePredictor:
     def __init__(self, tracking_uri: str = "http://mlflow:5000", experiment_name: str = "Used_Car_Pricing"):
