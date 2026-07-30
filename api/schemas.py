@@ -20,4 +20,5 @@ class CarPredictionRequest(BaseModel):
 
 class CarPredictionResponse(BaseModel):
     predicted_price: float
+    model_used: str
     currency: str = "USD"

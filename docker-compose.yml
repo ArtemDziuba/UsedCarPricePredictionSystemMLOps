@@ -93,6 +93,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: car_pricing_baseline
+    entrypoint: uvicorn 
+    command: api.main:app --host 0.0.0.0 --port 8000 
     ports:
       - "8000:8000"
     environment:

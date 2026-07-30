@@ -5,6 +5,7 @@ import joblib
 import numpy as np
 import mlflow
 import mlflow.sklearn
+import boto3
 
 def train_baseline():
     """
@@ -20,7 +21,7 @@ def train_baseline():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     data_path = os.path.join(script_dir, "../data/processed/num_dataset.parquet")
     model_save_path = os.path.join(script_dir, "../models/baseline.pkl")
-    columns_path = os.path.join(script_dir, "../models/expected_columns.pkl")
+    columns_path = os.path.join(script_dir, "../models/baseline_expected_columns.pkl")
     
     # 3. Load and split the dataset
     X_train, X_test, y_train, y_test = load_dataset(data_path)
@@ -50,6 +51,30 @@ def train_baseline():
         print("\nEvaluating model on the 20% test holdout...")
         metrics = evaluate_model(model, X_test, y_test, log_target=True)
         print_metrics(metrics)
+
+        # Save local artifacts
+        save_model(model, model_save_path)
+        expected_columns = list(X_train.columns)
+        joblib.dump(expected_columns, columns_path)
+        
+        # --- NEW: UPLOAD TO MINIO MODELS BUCKET ---
+        print("\nUploading baseline_expected_columns.pkl to MinIO 'models' bucket...")
+        s3_client = boto3.client(
+            's3',
+            endpoint_url=os.environ.get("MLFLOW_S3_ENDPOINT_URL", "http://minio:9000"),
+            aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID", "admin"),
+            aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY", "password123")
+        )
+        s3_client.upload_file(
+            Filename=columns_path, 
+            Bucket='models', 
+            Key='baseline_expected_columns.pkl'
+        )
+        # ------------------------------------------
+
+        print("\nUploading model to MLflow...")
+        mlflow.sklearn.log_model(model, "baseline_model")
+        mlflow.set_tag("Stage", "Baseline")
         
         # Log every metric your evaluate_model function returns (R2, RMSE, etc.)
         for metric_name, metric_value in metrics.items():

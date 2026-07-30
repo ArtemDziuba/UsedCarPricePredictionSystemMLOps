@@ -242,6 +242,7 @@ def create_datasets(input_path: str, output_dir: str, artifacts_dir: str):
     # TRACK 1: FULL DATASET
     # ------------------------------------
     df_full = preprocess_full_dataset(df_master)
+    df_full = df_full.drop(columns=['mmr'])
     full_path = os.path.join(output_dir, 'full_dataset.parquet')
     df_full.to_parquet(full_path, index=False)
     print(f"\nSaved {full_path} (Shape: {df_full.shape})")
